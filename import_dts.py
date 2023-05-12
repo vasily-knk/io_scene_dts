@@ -13,6 +13,9 @@ from itertools import zip_longest, count
 from functools import reduce
 from random import random
 
+import sys
+import json
+
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
@@ -29,22 +32,44 @@ def dedup_name(group, name):
         if new_name not in group:
             return new_name
 
+def resolve_texture1(filepath, name):
+    dirname = os.path.dirname(filepath)
+
+    json_path = 'art/materials.json'
+    if not os.path.isfile(json_path):
+        print("Can't load ", json_path, file=sys.stderr)
+        return None
+
+    with open(json_path, 'r') as f:
+        json_data = json.load(f)
+
+    mat_data = json_data.get(name)
+    if mat_data is None:
+        print("Material " + name + " not found in " + json_path, file=sys.stderr)
+        return None
+
+    diffuseMap = mat_data.get('diffuseMap')
+    if 'diffuseMap' is None or len(diffuseMap) == 0:
+        print("diffuseMap " + name + " not found in " + name, file=sys.stderr)
+        return None
+
+    return os.path.join(os.getcwd(), diffuseMap[0])
+
 def import_material(color_source, dmat, filepath):
     bmat = bpy.data.materials.new(dedup_name(bpy.data.materials, dmat.name))
     bmat.diffuse_intensity = 1
 
-    texname = resolve_texture(filepath, dmat.name)
+    texname = resolve_texture1(filepath, dmat.name)
 
     if texname is not None:
-        try:
-            teximg = bpy.data.images.load(texname)
-        except:
-            print("Cannot load image", texname)
+        teximg = bpy.data.images.load(texname)
 
         texslot = bmat.texture_slots.add()
         texslot.use_map_alpha = True
         tex = texslot.texture = bpy.data.textures.new(dmat.name, "IMAGE")
         tex.image = teximg
+
+        print("Image size:", teximg.size[0], teximg.size[1])
 
         # Try to figure out a diffuse color for solid shading
         if teximg.size[0] <= 16 and teximg.size[1] <= 16:
@@ -213,6 +238,7 @@ def load(operator, context, filepath,
     color_source = get_rgb_colors()
 
     for dmat in shape.materials:
+        print("Importing mat: ", dmat.name, "bbb")
         materials[dmat] = import_material(color_source, dmat, filepath)
 
     # Now assign IFL material properties where needed
