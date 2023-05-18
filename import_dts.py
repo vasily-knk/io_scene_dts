@@ -53,18 +53,64 @@ def resolve_texture1(filepath, name):
         print("diffuseMap " + name + " not found in " + name, file=sys.stderr)
         return None
 
-    return os.path.join(os.getcwd(), diffuseMap[0])
+    dds_texture_path = os.path.join(os.getcwd(), diffuseMap[0])
+    if not os.path.isfile(dds_texture_path):
+        return
+
+    if dds_texture_path.lower().endswith('.dds'):
+        # png_texture_path = dds_texture_path.replace('.dds', '.png')
+        png_texture_path = dds_texture_path.rpartition('.')[0] + '.png'
+        if os.path.isfile(png_texture_path):
+            return png_texture_path
+        else:
+            return save_png(dds_texture_path, png_texture_path)
+    else:
+        print('Wrong texture format: is not *.dds', dds_texture_path)
+        return
+
+def save_png(dds_texture_path, png_texture_path):
+    if not os.path.isfile(png_texture_path):
+        try:
+            teximg = bpy.data.images.load(dds_texture_path)
+            teximg.file_format = "PNG"
+            teximg.save_render(png_texture_path)
+        except Exception as e:
+            print('ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print('Save .dds to .png gone wrong')
+            print(e)
+            return
+
+    return png_texture_path
+
+def isBmat(mat_list, mat_name):
+    if mat_name in mat_list:
+        return True
+    return False
 
 def import_material(color_source, dmat, filepath):
-    bmat = bpy.data.materials.new(dedup_name(bpy.data.materials, dmat.name))
+
+    if isBmat(bpy.data.materials, dmat.name):
+        return bpy.data.materials[dmat.name]
+
+    # bmat = bpy.data.materials.new(dedup_name(bpy.data.materials, dmat.name))
+    bmat = bpy.data.materials.new(dmat.name)
     bmat.diffuse_intensity = 1
 
     texname = resolve_texture1(filepath, dmat.name)
 
     if texname is not None:
-        teximg = bpy.data.images.load(texname)
+        try:
+            teximg = bpy.data.images.load(texname)
+            texslot = bmat.texture_slots.add()
 
-        texslot = bmat.texture_slots.add()
+        except Exception as e:
+            print('ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print(e)
+            with open('textures.txt', 'a') as f:
+                p = texname.split('game_assets')
+                f.write(p[-1] + '\n')
+            return
+
         texslot.use_map_alpha = True
         tex = texslot.texture = bpy.data.textures.new(dmat.name, "IMAGE")
         tex.image = teximg
@@ -85,6 +131,7 @@ def import_material(color_source, dmat, filepath):
                     break
             else:
                 bmat.diffuse_color = color[:3]
+
     elif dmat.name.lower() in default_materials:
         bmat.diffuse_color = default_materials[dmat.name.lower()]
     else: # give it a random color
@@ -240,7 +287,6 @@ def load(operator, context, filepath,
     for dmat in shape.materials:
         print("Importing mat: ", dmat.name, "bbb")
         materials[dmat] = import_material(color_source, dmat, filepath)
-
     # Now assign IFL material properties where needed
     for ifl in shape.iflmaterials:
         mat = materials[shape.materials[ifl.slot]]
