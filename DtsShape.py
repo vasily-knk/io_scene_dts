@@ -575,6 +575,12 @@ class DtsShape(object):
 
 		stream.guard()
 
+		for lod in self.detail_levels:
+			print("Lod:", self.names[lod.name], lod.subshape, lod.objectDetail, lod.size)
+
+		for subshape in self.subshapes:
+			print("Subshape:", subshape.__dict__)
+
 		self.alpha_in = [None] * n_detaillevel
 		self.alpha_out = [None] * n_detaillevel
 

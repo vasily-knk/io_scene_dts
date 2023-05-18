@@ -48,6 +48,7 @@ def resolve_texture1(filepath, name):
         print("Material " + name + " not found in " + json_path, file=sys.stderr)
         return None
 
+
     diffuseMap = mat_data.get('diffuseMap')
     if 'diffuseMap' is None or len(diffuseMap) == 0:
         print("diffuseMap " + name + " not found in " + name, file=sys.stderr)
@@ -270,6 +271,9 @@ def load(operator, context, filepath,
          import_sequences=True,
          use_armature=False,
          debug_report=False):
+
+    print("use_armature:", use_armature)
+
     shape = DtsShape()
 
     with open(filepath, "rb") as fd:
@@ -497,15 +501,28 @@ def load(operator, context, filepath,
         sequences_buf.from_string("\n".join(sequences_text))
 
     # Then put objects in the armatures
+
+    detail_names = [shape.names[lod.name] for lod in shape.detail_levels]
+
+    assert len(shape.subshapes) == 1
+
     for obj in shape.objects:
-        if obj.node == -1:
+        if obj.node == -1 and use_armature:
             print('Warning: Object {} is not attached to a node, ignoring'
                   .format(shape.names[obj.name]))
             continue
 
+        obj_name = shape.names[obj.name]
+        print("Object {}, node {}, {} meshes".format(obj_name, shape.names[shape.nodes[obj.node].name] if obj.node != -1 else '--none--', obj.numMeshes))
+
         for meshIndex in range(obj.numMeshes):
             mesh = shape.meshes[obj.firstMesh + meshIndex]
+
             mtype = mesh.type
+
+            # use only the most detailed LOD
+            if meshIndex > 0:
+                continue
 
             if mtype == Mesh.NullType:
                 continue
@@ -531,7 +548,8 @@ def load(operator, context, filepath,
                     modifier = bobj.modifiers.new('Armature', 'ARMATURE')
                     modifier.object = root_ob
             else:
-                bobj.parent = node_obs[obj.node]
+                if obj.node != -1:
+                    bobj.parent = node_obs[obj.node]
 
             lod_name = shape.names[lod_by_mesh[meshIndex].name]
 
