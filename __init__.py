@@ -81,6 +81,12 @@ class ImportDTS(bpy.types.Operator, ImportHelper):
         default=False,
         )
 
+    visible_meshes = StringProperty(
+        name="Visible meshes",
+        description="Visible meshes filter (empty for all meshes)",
+        default="",
+    )
+
     def execute(self, context):
         from . import import_dts
 

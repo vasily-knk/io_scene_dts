@@ -270,7 +270,12 @@ def load(operator, context, filepath,
          reference_keyframe=True,
          import_sequences=True,
          use_armature=False,
-         debug_report=False):
+         debug_report=False,
+         visible_meshes=None):
+
+    visible_meshes_set = set(visible_meshes.split()) if visible_meshes else None
+
+    print("Visible meshes: ", visible_meshes_set if visible_meshes_set is not None else "--all--")
 
     print("use_armature:", use_armature)
 
@@ -514,6 +519,9 @@ def load(operator, context, filepath,
 
         obj_name = shape.names[obj.name]
         print("Object {}, node {}, {} meshes".format(obj_name, shape.names[shape.nodes[obj.node].name] if obj.node != -1 else '--none--', obj.numMeshes))
+
+        if visible_meshes_set is not None and obj_name not in visible_meshes_set:
+            continue
 
         for meshIndex in range(obj.numMeshes):
             mesh = shape.meshes[obj.firstMesh + meshIndex]
