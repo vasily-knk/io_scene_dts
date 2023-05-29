@@ -150,6 +150,15 @@ class DetailLevel:
                 obj.avgError = stream.read_float()
                 obj.maxError = stream.read_float()
                 obj.polyCount = stream.read32()
+
+                if stream.dtsVersion >= 26:
+                        obj.bbDimension = stream.read32()
+                        obj.bbDetailLevel = stream.read32()
+                        obj.bbEquatorSteps = stream.read32()
+                        obj.bbPolarSteps = stream.read32()
+                        obj.bbPolarAngle = stream.read_float()
+                        obj.bbIncludePoles = stream.read32()
+
                 return obj
 
 class Primitive:

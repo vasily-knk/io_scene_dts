@@ -102,6 +102,7 @@ class DtsInputStream(object):
 		self.sequence16 = c_short(0)
 		self.sequence8  = c_byte(0)
 		self.dtsVersion, self.exporterVersion = unpack("hh", fd.read(4))
+		print("Dts version:", self.dtsVersion)
 		end8, end32, end16 = unpack("iii", fd.read(12))
 		num32 = end32
 		num16 = (end16 - end32) * 2
