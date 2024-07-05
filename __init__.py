@@ -33,6 +33,7 @@ else:
     debug_prop_options = {'HIDDEN'}
 
 import bpy
+from .transfer_keyframes import *
 from bpy.props import (BoolProperty,
                        FloatProperty,
                        IntProperty,
@@ -405,6 +406,28 @@ class TorqueMaterialPanel(bpy.types.Panel):
         sublayout = row.column()
         sublayout.enabled = not obj.torque_props.no_mipmaps
         sublayout.prop(obj.torque_props, "mip_bzero")
+
+class TorqueKeyframeTransfer(bpy.types.Panel):
+    bl_label = "Torque Keyframe Transfer"
+    bl_idname = "OBJECT_PT_keyframe_transfer"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = "Tools"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+
+        layout.operator("object.transfer_keyframes_operator", text="Transfer Keyframes")
+
+class TransferKeyframesOperator(bpy.types.Operator):
+    bl_idname = "object.transfer_keyframes_operator"
+    bl_label = "Transfer Keyframes Operator"
+
+    def execute(self, context):
+        transfer_keyframes()
+        self.report({'INFO'}, "Keyframes transferred")
+        return {'FINISHED'}
 
 def menu_func_import_dts(self, context):
     self.layout.operator(ImportDTS.bl_idname, text="Torque (.dts)")
