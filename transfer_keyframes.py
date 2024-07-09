@@ -11,7 +11,7 @@ start_sequence_frame = 0
 last_marker = max(scene.timeline_markers, key=lambda marker: marker.frame)
 scene.frame_end = last_marker.frame
 #keyframe_range = len(range(start_sequence_frame, last_marker.frame + 1))
-keyframe_range = range(start_sequence_frame, 4)
+keyframe_range = range(start_sequence_frame, 3)
 
 #Selecting the target armature
 def find_armature():
@@ -34,6 +34,8 @@ def find_empty():
             obj.select = True
             return obj
     #TODO Handle exceptions
+
+
 
 #Getting Transform data for one of the empties
 def get_empty_transforms(empty):
@@ -70,19 +72,31 @@ def fetch_empty_names(empty):
 
 #Collecting all of the transform data per Empty per Frame
 def fetch_empty_keyframes(empty):
-    all_empty_transforms = {}
     list_of_empties.append(empty.name)  #Adding the first (parent) empty
     fetch_empty_names(empty)            #Adding all of the child empties
-    print("List of Empties: ", list_of_empties)              #Debug
-
+    print("List of Empties: \n", list_of_empties)              #Debug
+    transform_registry = {}
     for current_empty_name in list_of_empties:
-         for obj in bpy.context.scene.objects:
+        for obj in bpy.context.scene.objects:
               if obj.name == current_empty_name:
                 bpy.context.scene.objects.active = obj
                 obj.select = True
-                #empty_transforms[index] = {current_empty_name : get_empty_transforms(obj)}
-                all_empty_transforms[current_empty_name] = get_empty_transforms(obj)
-    return all_empty_transforms
+                print("Currently busy with {} Empty".format(bpy.context.scene.objects.active.name))
+                frame_registry = {}
+                for current_frame in keyframe_range:
+                    bpy.context.scene.frame_set(current_frame)
+                    print("Getting transform data for {0}, frame #{1}, location data is {2}".format(obj, current_frame, obj.location))
+                    frozen_location = tuple(obj.location)
+                    frozen_rotation = tuple(obj.rotation_quaternion)
+                    frozen_scale = tuple(obj.scale)
+                    frame_registry[current_frame] = {'location' : frozen_location,
+                                                     'rotation' : frozen_rotation,
+                                                     'scale' : frozen_scale
+                                                     }
+                transform_registry.update({current_empty_name : frame_registry})
+                print(transform_registry)
+ 
+    return transform_registry
          
 #Setting all of the Transform data per Bone per frame
 def set_armature_keyframes(armature, ref_transforms, transform_bias):
@@ -115,17 +129,14 @@ def set_armature_keyframes(armature, ref_transforms, transform_bias):
 def transfer_keyframes():
     empty = find_empty()                                                #Finding the root Empty
     ref_transforms = fetch_empty_keyframes(empty)                       #Collecting all of the transform data per Empty per Frame
-    transform_bias = get_transform_bias(ref_transforms)                 #Collecting the 0-frame bias
-    armature = find_armature()                                          #Finfing the Armature
-    set_armature_keyframes(armature, ref_transforms, transform_bias)    #Setting the Armature keyframes
+    #transform_bias = get_transform_bias(ref_transforms)                 #Collecting the 0-frame bias
+    #armature = find_armature()                                          #Finfing the Armature
+    #set_armature_keyframes(armature, ref_transforms, transform_bias)    #Setting the Armature keyframes
     for j in ref_transforms:
         if j == "Bip01":
+            print("\n")
             print(ref_transforms[j])
             print("\n")
-    """for i in ref_transforms:
-        if i == 'Bip01':
-            print(transform_bias['Bip01'].values())"""
-
     bpy.ops.object.select_all(action='DESELECT')
     #print(ref_transforms)
     scene.frame_current = 0
